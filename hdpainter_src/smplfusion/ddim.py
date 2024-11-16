@@ -4,8 +4,8 @@ from . import scheduler
 from . import share
 
 from ..utils.iimage import IImage
-
-class DDIM:
+from diffusers import StableDiffusionInpaintPipeline
+class DDIM():
     def __init__(self, config, vae, encoder, unet):
         self.vae = vae
         self.encoder = encoder

@@ -4,7 +4,7 @@ import torch
 from .common import MODEL_FOLDER, load_sd_inpainting_model, download_file
 
 model_dict = {
-    'sd15_inp': {
+    'sd15': {
         'sd_version': 1,
         'diffusers_ckpt': True,
         'model_path': OrderedDict([
@@ -18,7 +18,7 @@ model_dict = {
             ('vae', 'https://huggingface.co/runwayml/stable-diffusion-inpainting/resolve/main/vae/diffusion_pytorch_model.fp16.safetensors?download=true')
         ])
     },
-    'ds8_inp': {
+    'ds8': {
         'sd_version': 1,
         'diffusers_ckpt': True,
         'model_path': OrderedDict([
@@ -32,7 +32,7 @@ model_dict = {
             ('vae', 'https://huggingface.co/Lykon/dreamshaper-8-inpainting/resolve/main/vae/diffusion_pytorch_model.fp16.safetensors?download=true')
         ])
     },
-    'sd2_inp': {
+    'sd2': {
         'sd_version': 2,
         'diffusers_ckpt': False,
         'model_path': 'sd-2-0-inpainting/512-inpainting-ema.safetensors',
