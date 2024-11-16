@@ -4,14 +4,6 @@ from PIL import Image
 
 from .freecond import fc_config, get_pipeline
 
-# Modified from
-from .freecond_controlnet import FreeCondControlNetPipeline, ControlNetModel
-
-# Modified from 
-from hdpainter_src import models
-from hdpainter_src.methods import fc_rasg, rasg, sd, sr
-from hdpainter_src.utils import IImage, resize
-
 
 PROMPT="University"
 NPROMPT="money, love, hope"
@@ -28,8 +20,11 @@ def get_pipeline_forward(method="sd", variant="sd15",device="cuda", **kwargs):
           or printing model details
         forward (): generalized forward function across different baselines
     """
+
     print("❗❗❗ Be sure using correct python environment, the python environment are different for methods ")
     if method=="cn":
+        # Modified from
+        from .freecond_controlnet import FreeCondControlNetPipeline, ControlNetModel
         print("🔄 Building ConrtrolNet-Inpainting FreeCond control...")
         controlnet = ControlNetModel.from_pretrained(
         "lllyasviel/control_v11p_sd15_inpaint", torch_dtype=torch.float16
@@ -65,6 +60,11 @@ def get_pipeline_forward(method="sd", variant="sd15",device="cuda", **kwargs):
 
 
     elif method=="hdp":
+        # Modified from 
+        from hdpainter_src import models
+        from hdpainter_src.methods import fc_rasg, rasg, sd, sr
+        from hdpainter_src.utils import IImage, resize
+
         print("🔄 Building HD-Painter FreeCond control...")
 
         if "hdp_methods" in kwargs:
@@ -106,9 +106,87 @@ def get_pipeline_forward(method="sd", variant="sd15",device="cuda", **kwargs):
 
 
     elif method=="pp":
+        # Modified from
+        from powerpaint.powerpaint_freecond import PowerPaintController
         print("🔄 Building PowerPaint FreeCond control...")
+        print("❗ Require PowerPaint environment")
+        print("❗ Placing the checkpoint from original repository in right directory")
+
+        if "pp_fit_degree" in kwargs:
+            fit_degree=kwargs["pp_fit_degree"]
+        else:
+            fit_degree=0.5
+        weight_dtype = torch.float16
+        controller = PowerPaintController(weight_dtype, "./powerpaint/checkpoints/ppt-v1", False, "ppt-v1")
+        pipe=controller.pipe
+        def forward(fc_control, init_image, mask_image,
+            prompt=PROMPT, negative_prompt=NPROMPT,
+            guidance_scale=15, num_inference_steps=50, generator=None, **kwargss):
+            input_image={"image":init_image,
+                 "mask":mask_image}
+            return controller.infer(fc_control, input_image,
+                    prompt,
+                    negative_prompt,
+                    prompt,
+                    negative_prompt,
+                    fit_degree,
+                    num_inference_steps,
+                    guidance_scale,
+                    1234,
+                    "shape-guided",
+                    1,
+                    1,
+                    "",
+                    "",
+                    "",
+                    "",)[0]
+                        
+
     elif method=="bn":
+        def to_masked(img1, mask_image):
+            mask_image = mask_image.convert("L")
+
+            # Create a black image of the same size as the RGB image
+            black_image = Image.new("RGB", img1.size, color=(0, 0, 0))
+
+            # Apply the mask: Combine the original image and the black image using the mask
+            masked_image = Image.composite( black_image, img1, mask_image)
+            return masked_image
+
+        from diffusers import BrushNetModel, UniPCMultistepScheduler, FCStableDiffusionBrushNetPipeline
         print("🔄 Building BrushNet FreeCond control...")
+        print("❗ Require BrushNet environment (the customized diffuser)")
+        print("❗ Placing the checkpoint from original repository in right directory")
+        print("❗ Using instead of increasing alpha value, alpha value <1 can produce more harmonious result")
+        if "bn_scale" in kwargs:
+            scale=kwargs["bn_scale"]
+        else:
+            scale=1.
+                
+        base_model_path = "runwayml/stable-diffusion-v1-5"
+        brushnet_path = "data/ckpt/segmentation_mask_brushnet_ckpt"
+
+        brushnet = BrushNetModel.from_pretrained(brushnet_path, torch_dtype=torch.float16).to(device)
+
+        pipe = FCStableDiffusionBrushNetPipeline.from_pretrained(
+            base_model_path, brushnet=brushnet, torch_dtype=torch.float16, low_cpu_mem_usage=False
+        )
+        pipe.enable_model_cpu_offload()
+        def forward(fc_control, init_image, mask_image,
+            prompt=PROMPT, negative_prompt=NPROMPT,
+            guidance_scale=15, num_inference_steps=50, generator=None, **kwargss):
+            
+            init_image = to_masked(init_image, mask_image)
+            return pipe.freecond_forward_staged(
+                    fc_control,
+                    prompt,
+                    init_image,
+                    mask_image,
+                    guidance_scale=guidance_scale,
+                    num_inference_steps=num_inference_steps,
+                    paintingnet_conditioning_scale=scale,
+                    **kwargss
+                    )
 
     else:
         print("🔄 Building Stable-Diffusion-Inpainting FreeCond control...")

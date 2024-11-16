@@ -72,7 +72,7 @@ def run(
     dtype = unet_condition.dtype
 
     # Starting latent
-    seed_everything(seed)
+    # seed_everything(seed)
     zt = torch.randn((1,4) + unet_condition.shape[2:]).cuda().to(dtype)
 
     # Setup unet for guidance
