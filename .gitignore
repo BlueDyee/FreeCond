@@ -5,3 +5,5 @@
 *.safetensors
 *.typed
 *.bin
+*.bash
+*.csv

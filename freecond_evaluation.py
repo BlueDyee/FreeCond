@@ -2,25 +2,29 @@ import torch
 import cv2
 import json
 import os
-import numpy as np
+
 from PIL import Image
 import argparse
 import pandas as pd
-import torch
+
 import torch.nn.functional as F
 import numpy as np
+
 from torchmetrics.multimodal import CLIPScore
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 from urllib.request import urlretrieve 
-from PIL import Image
 import open_clip
-import os
+
 import hpsv2
 import ImageReward as RM
 import math
 from tqdm import tqdm
+from scipy.spatial.distance import cdist
+import kmedoids
 
-from freecond_src.freecond import get_pipeline,fc_config
+from freecond_src.freecond import fc_config
+from freecond_src.freecond_utils import get_pipeline_forward
+from segment_anything import SamPredictor, sam_model_registry
 
 def to_masked(img1, mask_image):
     mask_image = mask_image.convert("L")
@@ -41,6 +45,22 @@ def rle2mask(mask_rle, shape): # height, width
         binary_mask[lo:hi] = 1
     return binary_mask.reshape(shape)
 
+def compute_cluster_points(
+    points: np.ndarray, num_center: int, sub_sample_size: int = 1800
+) -> np.ndarray:
+    sub_sample_indices = np.random.permutation(len(points))[: min(sub_sample_size, len(points))]
+    sub_points = points[sub_sample_indices]
+    dis = cdist(sub_points, sub_points, metric="euclidean")
+    num_center = min(len(dis), num_center)
+    c = kmedoids.fasterpam(dis, num_center)
+    return sub_points[c.medoids]
+
+def compute_iou(mask1: np.ndarray, mask2: np.ndarray) -> float:
+    assert mask1.dtype == bool and mask2.dtype == bool, "Masks must be boolean"
+    intersection = np.logical_and(mask1, mask2).sum()
+    union = np.logical_or(mask1, mask2).sum()
+    return intersection / union
+
 
 class MetricsCalculator:
     def __init__(self, device,ckpt_path="data/ckpt") -> None:
@@ -60,17 +80,29 @@ class MetricsCalculator:
         self.aesthetic_model.eval()
         self.clip_model, _, self.clip_preprocess = open_clip.create_model_and_transforms('ViT-L-14', pretrained='openai')
         # image reward model
-        self.imagereward_model = RM.load("ImageReward-v1.0")
- 
+        self.imagereward_model = RM.load("ImageReward-v1.0").to(device)
 
+        """Quick installation
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+        pip install kmedoids
+        pip install git+https://github.com/facebookresearch/segment-anything.git
+        """
+        self.sam = sam_model_registry["vit_l"](checkpoint=os.path.join(ckpt_path,"sam_vit_l_0b3195.pth")).to(device)
+        self.sam_predictor = SamPredictor(self.sam)
+        self.grid_size=4
+        self.num_center=3
+        self.sub_sample_size=1800
+        self.rejection_ratio=1.5
+ 
+    @torch.no_grad()
     def calculate_image_reward(self,image,prompt):
         reward = self.imagereward_model.score(prompt, [image])
         return reward
-
+    @torch.no_grad()
     def calculate_hpsv21_score(self,image,prompt):
         result = hpsv2.score(image, prompt, hps_version="v2.1")[0]
         return result.item()
-
+    @torch.no_grad()
     def calculate_aesthetic_score(self,img):
         image = self.clip_preprocess(img).unsqueeze(0)
         with torch.no_grad():
@@ -78,7 +110,9 @@ class MetricsCalculator:
             image_features /= image_features.norm(dim=-1, keepdim=True)
             prediction = self.aesthetic_model(image_features)
         return prediction.cpu().item()
-
+    
+    
+    @torch.no_grad()
     def calculate_clip_similarity(self, img, txt):
         img = np.array(img)
         
@@ -89,6 +123,39 @@ class MetricsCalculator:
         
         return score
     
+    @torch.no_grad()
+    def calculate_iou_score(self,img,mask):
+        img_np=np.array(img)
+        height,width=mask.shape
+        self.sam_predictor.set_image(img_np)
+
+        x = np.arange(2, width - 1, self.grid_size)
+        y = np.arange(2, height - 1, self.grid_size)
+        xx, yy = np.meshgrid(x, y)
+        grid_points = np.stack([xx, yy], axis=-1).reshape(-1, 2)
+        real_points = grid_points[:, 1] * width + grid_points[:, 0]
+        pos_grid_points = grid_points[mask.reshape(-1)[real_points] > 0]
+
+        sample_pos_points = compute_cluster_points(pos_grid_points, self.num_center, self.sub_sample_size)
+
+        sam_masks, *_ = self.sam_predictor.predict(
+            point_coords=sample_pos_points,
+            point_labels=np.ones((len(sample_pos_points),)),
+            multimask_output=False,
+        )
+        sam_mask = sam_masks[0]
+        # compute rejection case，generated object not found, too small, or too close to bg
+        if np.sum(sam_mask>0) > np.sum(mask>0)*self.rejection_ratio:
+            #print("reject", pred_file)
+            sam_mask=np.zeros_like(sam_mask)
+
+        assert sam_mask.shape == (height, width)
+        iou = compute_iou(sam_mask > 0, mask > 0)
+        return iou, sam_mask
+
+
+
+    @torch.no_grad()
     def calculate_psnr(self, img_pred, img_gt, mask=None):
         img_pred = np.array(img_pred).astype(np.float32)/255.
         img_gt = np.array(img_gt).astype(np.float32)/255.
@@ -111,7 +178,7 @@ class MetricsCalculator:
         PIXEL_MAX = 1
         return 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
 
-    
+    @torch.no_grad()   
     def calculate_lpips(self, img_gt, img_pred, mask=None):
         img_pred = np.array(img_pred).astype(np.float32)/255
         img_gt = np.array(img_gt).astype(np.float32)/255
@@ -129,7 +196,7 @@ class MetricsCalculator:
         score = score.cpu().item()
         
         return score
-    
+    @torch.no_grad()
     def calculate_mse(self, img_pred, img_gt, mask=None):
         img_pred = np.array(img_pred).astype(np.float32)/255.
         img_gt = np.array(img_gt).astype(np.float32)/255.
@@ -153,13 +220,22 @@ class MetricsCalculator:
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--model', 
+parser.add_argument("--split_size",type=int, default=600)
+parser.add_argument('--method', 
+                    type=str, 
+                    default="sd",
+                    help="Currently support [sd, cn, hdp, pp, bn, sdxl]")
+parser.add_argument('--variant', 
                     type=str, 
                     default="sd15",
                     help="Currently support [sd15, sd2, ds8, sdxl]")
+
 parser.add_argument('--save_dir', 
                     type=str, 
                     default="trial 1",)
+parser.add_argument('--data_dir', 
+                    type=str, 
+                    default="./data/FCIBench")
 parser.add_argument('--data_csv', 
                     type=str, 
                     default="FCinpaint_bench_info.csv")
@@ -197,7 +273,7 @@ parser.add_argument("--hq_2",
                     default=1)
 parser.add_argument("--q_th",
                     type=int,
-                    default=8)
+                    default=4)
 parser.add_argument("--gs",
                     type=float,
                     default=15)                                 
@@ -205,33 +281,46 @@ args = parser.parse_args()
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-pipe = get_pipeline(args.model).to(device)
+pipeline, forward = get_pipeline_forward(method=args.method,variant=args.variant)
 if args.no_freecond:
     fc_control= fc_config(0,1,1,0,0,1,1,1,1,32)
 else:
     fc_control= fc_config(args.change_step, args.fg_1, args.fg_2, args.bg_1, args.bg_2,
             args.hq_1, args.hq_2, args.lq_1, args.lq_2, args.q_th)
-# memory optimization.
-# pipe.enable_model_cpu_offload()
-save_dir_path=f"runs/{args.model}/{args.save_dir}"
+
+save_dir_path=f"runs/{args.method}_{args.variant}/{args.save_dir}"
 
 
-df=pd.read_csv(args.data_csv, index_col=None)
+data_dir=args.data_dir
+df=pd.read_csv(os.path.join(args.data_dir, args.data_csv), index_col=None)
+
+# make split
+print("*️⃣assign --split_size for partial evaluation")
+print("*️⃣current --split_size = ",args.split_size)
+total_idxs = [i for i in range(len(df))]
+np.random.shuffle(total_idxs)
+shuffle_idxs = total_idxs[:args.split_size]
+idxs_set=set(shuffle_idxs)
+
+
 for index, data in df.iterrows():
+    if index not in idxs_set:
+        continue
     caption=data["prompt"]
     image_path=data["image"]
     mask_path=data["mask"]
 
-    init_image=Image.open(image_path).resize((512,512)).convert("RGB")
-    mask_image=Image.open(mask_path).resize((512,512))
+    init_image=Image.open(os.path.join(data_dir, image_path)).resize((512,512)).convert("RGB")
+    mask_image=Image.open(os.path.join(data_dir, mask_path)).resize((512,512))
     generator = torch.Generator(device).manual_seed(1234)
     nprompt="word, bad quality, bad anatomy, ugly, mutation, blurry, error"
     save_path= os.path.join(save_dir_path,image_path) 
     masked_image_save_path=save_path.replace(".jpg","_masked.jpg")
 
-    image = pipe.freecond_forward_staged(
+    image = forward(
     fc_control,
-    caption, init_image, mask_image,
+    init_image, mask_image,
+    prompt=caption,
     negative_prompt=nprompt,
     guidance_scale=args.gs,
     num_inference_steps=args.inf_step, 
@@ -262,24 +351,27 @@ for index, data in df.iterrows():
     masked_image.save(masked_image_save_path)
 
 # evaluation
-evaluation_df = pd.DataFrame(columns=['Image ID','Image Reward', 'HPS V2.1', 'Aesthetic Score', 'PSNR', 'LPIPS', 'MSE', 'CLIP Similarity'])
+evaluation_df = pd.DataFrame(columns=['Image ID','Image Reward', 'HPS V2.1', 'Aesthetic Score', 'PSNR', 'LPIPS', 'MSE', 'CLIP Similarity', "IoU Score"])
 
 metrics_calculator=MetricsCalculator(device)
 
 for index, data in tqdm(df.iterrows()):
+    if index not in idxs_set:
+        continue
     prompt=data["prompt"]
     image_path=data["image"]
     mask_path=data["mask"]
 
-    src_image = Image.open(image_path).resize((512,512))
+    src_image = Image.open(os.path.join(data_dir, image_path)).resize((512,512))
 
     tgt_image_path=os.path.join(save_dir_path, image_path)
     tgt_image = Image.open(tgt_image_path).resize((512,512))
 
     evaluation_result=[index]
         
-    mask = cv2.resize(cv2.imread(mask_path),(512,512))//255
+    mask = cv2.resize(cv2.imread(os.path.join(data_dir, mask_path)),(512,512))//255
     mask = 1 - mask
+    inner_mask = cv2.resize(cv2.imread(os.path.join(data_dir, mask_path), cv2.IMREAD_GRAYSCALE), (512, 512)) 
 
     for metric in evaluation_df.columns.values.tolist()[1:]:
         print(f"evluating metric: {metric}")
@@ -304,6 +396,9 @@ for index, data in tqdm(df.iterrows()):
         
         if metric == 'CLIP Similarity':
             metric_result = metrics_calculator.calculate_clip_similarity(tgt_image, prompt)
+
+        if metric == 'IoU Score':
+            metric_result = metrics_calculator.calculate_iou_score(tgt_image, inner_mask)[0]
 
         evaluation_result.append(metric_result)
     
