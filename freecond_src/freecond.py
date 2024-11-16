@@ -41,7 +41,7 @@ from dataclasses import dataclass
 
 
 class fc_config():
-    def __init__(self, change_step=10, fg_1=3, fg_2=0.5, bg_1=3, bg_2=0.5, hq_1=0, hq_2=1, lq_1=1, lq_2=1, fq_th=8):
+    def __init__(self, change_step=0, fg_1=1, fg_2=1, bg_1=0, bg_2=0, hq_1=1, hq_2=1, lq_1=1, lq_2=1, fq_th=32):
         """
         Encapsulize freecond hyper parameters
         _1, _2 specified the parameter before and after change_step
@@ -815,7 +815,7 @@ class FreeCondPipeline(StableDiffusionInpaintPipeline):
                         height=512, width=512, prompt_embeds=None, negative_prompt_embeds=None, timesteps=None, latents=None,
                         scheduler_step="no", demo=False):
         
-        filter=fc_config.get_freq_filter()
+        #filter=fc_config.get_freq_filter()
 
         if scheduler_step=="ddim":
             step_func=ddim_step
@@ -908,11 +908,11 @@ class FreeCondPipeline(StableDiffusionInpaintPipeline):
                 # concat latents, mask, masked_image_latents in the channel dimension
                 latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
                 if i<fc_config.change_step:
-                    cond_xt = filter(masked_image_latents, fc_config.fq_th, fc_config.hq_1, fc_config.lq_1)
-                    cond_mask = set_bg_mask(mask, fg=fc_config.fg_1, bg=fc_config.bg_1)
+                    cond_xt = fc_config.filter(masked_image_latents, fc_config.fq_th, fc_config.hq_1, fc_config.lq_1)
+                    cond_mask = fc_config.set_bg_mask(mask, fg=fc_config.fg_1, bg=fc_config.bg_1)
                 else:
-                    cond_xt = filter(masked_image_latents, fc_config.fq_th, fc_config.hq_2, fc_config.lq_2)
-                    cond_mask = set_bg_mask(mask, fg=fc_config.fg_2, bg=fc_config.bg_2)
+                    cond_xt = fc_config.filter(masked_image_latents, fc_config.fq_th, fc_config.hq_2, fc_config.lq_2)
+                    cond_mask = fc_config.set_bg_mask(mask, fg=fc_config.fg_2, bg=fc_config.bg_2)
 
                 latent_model_input = torch.cat([latent_model_input, cond_mask, cond_xt], dim=1)
 
@@ -2060,11 +2060,11 @@ class FreeCondXLPipeline(StableDiffusionXLInpaintPipeline):
 
                 #$ FreeCond part
                 if i<fc_config.change_step:
-                    cond_xt = filter(masked_image_latents, fc_config.fq_th, fc_config.hq_1, fc_config.lq_1)
-                    cond_mask = set_bg_mask(mask, fg=fc_config.fg_1, bg=fc_config.bg_1)
+                    cond_xt = fc_config.filter(masked_image_latents, fc_config.fq_th, fc_config.hq_1, fc_config.lq_1)
+                    cond_mask = fc_config.set_bg_mask(mask, fg=fc_config.fg_1, bg=fc_config.bg_1)
                 else:
-                    cond_xt = filter(masked_image_latents, fc_config.fq_th, fc_config.hq_2, fc_config.lq_2)
-                    cond_mask = set_bg_mask(mask, fg=fc_config.fg_2, bg=fc_config.bg_2)
+                    cond_xt = fc_config.filter(masked_image_latents, fc_config.fq_th, fc_config.hq_2, fc_config.lq_2)
+                    cond_mask = fc_config.set_bg_mask(mask, fg=fc_config.fg_2, bg=fc_config.bg_2)
 
                 latent_model_input = torch.cat([latent_model_input, cond_mask, cond_xt], dim=1)
 
