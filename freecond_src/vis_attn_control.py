@@ -50,20 +50,28 @@ class AttentionBase:
 
 class VISAttentionControl(AttentionBase):
     def __init__(self, start_step=0, end_step=50, start_layer=0, end_layer=16, layer_idx=None, step_idx=None, total_steps=50,
-                  latent_mask=None, vis_cross=False, vis_self=False, downsample=64):
+                  latent_mask=None, vis_cross=False, vis_self=False, vis_cross_token=False, downsample=64):
         super().__init__()
         self.layer_idx = list(range(start_layer, end_layer))
         self.step_idx = list(range(start_step, end_step))
         self.vis_self=vis_self
         self.vis_cross=vis_cross
+        self.vis_cross_token=vis_cross_token
         print("Activating VIS Attention Control...")
         print("# Visualize cross attention (1, 3, 5, 7... layers) =", vis_cross)
         print("# Visualize self attention (0, 2, 4, 6 ... layers)=", vis_self)
         self.cross_atn_dict={"u":defaultdict(dict),
                              "c":defaultdict(dict)}
+        self.cross_atn_dict_unsoft={"u":defaultdict(dict),
+                             "c":defaultdict(dict)}
         self.self_atn_dict={"u":defaultdict(dict),
                              "c":defaultdict(dict)}
-
+        self.cross_token_q_dict={"u":defaultdict(dict),
+                        "c":defaultdict(dict)}
+        self.cross_token_k_dict={"u":defaultdict(dict),
+                             "c":defaultdict(dict)}
+        self.cross_token_v_dict={"u":defaultdict(dict),
+                        "c":defaultdict(dict)}
     # Perforem lps attention control (contextual token reduction)
     def vis_self_attn(self, parent_module,input_tokens, q, k, v, latent_mask, is_cross, place_in_unet, num_heads, scale, indicator="u", **kwargs):
         
@@ -83,10 +91,14 @@ class VISAttentionControl(AttentionBase):
         sim = torch.einsum('b i d, b j d -> b i j', q, k)*scale
         soft_sim = sim.softmax(dim=-1)
         # print(f"saving to [{indicator}][{self.cur_step}][{self.cur_att_layer}]")
+        self.cross_atn_dict_unsoft[indicator][self.cur_step][self.cur_att_layer]=sim.cpu()
         self.cross_atn_dict[indicator][self.cur_step][self.cur_att_layer]=soft_sim.cpu()
         out = torch.einsum('b i j, b j d -> b i d', soft_sim, v)
         out = rearrange(out, '(b h) n d -> b n (h d)', h=num_heads)
-        
+        if self.vis_cross_token:
+            self.cross_token_q_dict[indicator][self.cur_step][self.cur_att_layer] = q.cpu()
+            self.cross_token_k_dict[indicator][self.cur_step][self.cur_att_layer] = k.cpu()
+            self.cross_token_v_dict[indicator][self.cur_step][self.cur_att_layer] = v.cpu()
         #
         #if is_cross:
         #    return torch.zeros_like(out)
