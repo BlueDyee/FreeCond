@@ -244,7 +244,7 @@ parser.add_argument('--blended', action='store_true')
 parser.add_argument("--no_freecond",action="store_true")
 parser.add_argument("--change_step",
                     type=int,
-                    default=10)
+                    default=50)
 parser.add_argument("--inf_step",
                     type=int,
                     default=50)
@@ -274,7 +274,7 @@ parser.add_argument("--hq_2",
                     default=1)
 parser.add_argument("--q_th",
                     type=int,
-                    default=4)
+                    default=24)
 parser.add_argument("--gs",
                     type=float,
                     default=15)                                 
