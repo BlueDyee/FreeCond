@@ -25,16 +25,13 @@ def load_pretrained_weights(weight_path):
     return forward, f"{weight_path} loaded"
 
 # Gradio app components
-def process_inpainting(forward, image, mask, prompt, nprompt,
+def process_inpainting(mask_bool, forward, image, mask, prompt, nprompt,
                         seed, hsize, wsize, gs, step,
                         tfc, a1, a2, b1, b2, g1, g2):
-    print(forward, image, mask, prompt, nprompt,
-                        seed, hsize, wsize, gs, step,
-                        tfc, a1, a2, b1, b2, g1, g2)
-    
-    if mask is not None:
+
+    if mask_bool==True:
         input_mask=mask
-        r_info="Use the specified mask instead of brushed mask"
+        r_info="Use the specified mask instead of draw mask"
     else:
         input_mask=image["mask"]
     torch.manual_seed(seed)
@@ -45,6 +42,102 @@ def process_inpainting(forward, image, mask, prompt, nprompt,
     #return r_info, image["image"]
     return r_info, output[0]
 
+predefined_settings = {
+    "Draw a FREECOND in the galaxy (1)":{"prompt": "A huge word made by glowing neon light, fantasy style",
+                                     "nprompt":"word, bad quality, bad anatomy, ugly, mutation, blurry, error",
+                                     "seed": 1234,
+                                     "gs": 15,
+                                     "image": Image.open("./demo_data/galaxy.jpg"),
+                                     "mask": Image.open("./demo_data/freecond_mask.png"),
+                                     "tfc": 35,
+                                     "a1": 2,
+                                     "a2": 2,
+                                     "b1": 0.6,
+                                     "b2": 0.6,
+                                     "g1":0.625,
+                                     },
+    "Draw a FREECOND in the galaxy (2)":{"prompt": "A huge word made by shining stars and magic runes, fantasy style",
+                                    "nprompt":"word, bad quality, bad anatomy, ugly, mutation, blurry, error",
+                                    "seed": 1234,
+                                    "gs": 15,
+                                    "image": Image.open("./demo_data/galaxy.jpg"),
+                                    "mask": Image.open("./demo_data/freecond_mask.png"),
+                                    "tfc": 35,
+                                    "a1": 3,
+                                    "a2": 3,
+                                    "b1": 0.6,
+                                    "b2": 0.6,
+                                    "g1":0.75,
+                                    },
+    "Draw a FREECOND in the desert":{"prompt": "A huge word made by glowing light bulbs, christmas style",
+                                    "nprompt":"word, bad quality, bad anatomy, ugly, mutation, blurry, error",
+                                    "seed": 47562,
+                                    "gs": 15,
+                                    "image": Image.open("./demo_data/desert.jpg"),
+                                    "mask": Image.open("./demo_data/freecond_mask.png"),
+                                    "tfc": 35,
+                                    "a1": 3,
+                                    "a2": 3,
+                                    "b1": 0,
+                                    "b2": 0.5,
+                                    "g1":0.625,
+                                    },
+    "Draw a christmas quokka":{"prompt": "A white quokka wearing round glasses, christmas style",
+                                    "nprompt":"word, bad quality, bad anatomy, ugly, mutation, blurry, error",
+                                    "seed": 47562,
+                                    "gs": 15,
+                                    "image": Image.open("./demo_data/desert.jpg"),
+                                    "mask": Image.open("./demo_data/quokka_mask.png"),
+                                    "tfc": 25,
+                                    "a1": 2,
+                                    "a2": 1,
+                                    "b1": 0.2,
+                                    "b2": 0.2,
+                                    "g1":0.75,
+                                    },
+    "Draw a halloween quokka":{"prompt": "A white quokka wearing round glasses, vampire cloak, halloween style",
+                                "nprompt":"word, bad quality, bad anatomy, ugly, mutation, blurry, error",
+                                "seed": 7414,
+                                "gs": 15,
+                                "image": Image.open("./demo_data/dark_woods.jpg"),
+                                "mask": Image.open("./demo_data/quokka_mask.png"),
+                                "tfc": 10,
+                                "a1": 1,
+                                "a2": 2,
+                                "b1": 0.2,
+                                "b2": 0.2,
+                                "g1":0.75,
+                                },
+    "Draw a gangster otter":{"prompt": "A gangster otter wearing sunglasses, anime style, jojo style",
+                            "nprompt":"word, bad quality, bad anatomy, ugly, mutation, blurry, error",
+                            "seed": 1234,
+                            "gs": 15,
+                            "image": Image.open("./demo_data/alley.jpg"),
+                            "mask": Image.open("./demo_data/otter_mask.png"),
+                            "tfc": 15,
+                            "a1": 1,
+                            "a2": 2,
+                            "b1": 0.2,
+                            "b2": 0.2,
+                            "g1":0.75,
+                            },
+    "Draw a spy otter":{"prompt": "A spy otter wearing sunglasses wearing black cloak, anime style, Detective Conan style",
+                            "nprompt":"word, bad quality, bad anatomy, ugly, mutation, blurry, error",
+                            "seed": 9453,
+                            "gs": 15,
+                            "image": Image.open("./demo_data/alley.jpg"),
+                            "mask": Image.open("./demo_data/otter_mask.png"),
+                            "tfc": 10,
+                            "a1": 3,
+                            "a2": 1,
+                            "b1": 0.2,
+                            "b2": 0.2,
+                            "g1":0.75,
+                            },
+}
+def apply_preset(selected_preset):
+    settings = predefined_settings[selected_preset]
+    return True, settings["prompt"], settings["nprompt"], settings["seed"], settings["gs"], settings["image"], settings["mask"], settings["tfc"], settings["a1"], settings["a2"], settings["b1"], settings["b2"], settings["g1"]
 
 with gr.Blocks() as demo:
     forward_state = gr.State(value=None)
@@ -63,21 +156,17 @@ with gr.Blocks() as demo:
                 value=None
             )
         with gr.Column(scale=1):
-            load_button = gr.Button("Load Weights")  
+            load_button = gr.Button("Load Weights")
 
     with gr.Row():  
         with gr.Column(scale=2):  
             image_input = gr.Image(type="pil", label="Upload Image and Draw Mask", tool="sketch")
-        with gr.Column(scale=2):  
-            output_image = gr.Image(label="Output Image")
-    
-    with gr.Row():  
-        with gr.Column(scale=2):  
             prompt = gr.Textbox(
                 label="Prompt", value="A quokka wearing round glasses, cartoon style, chrismas vibe",placeholder="Enter your prompt here..."
             )
-        with gr.Column(scale=2):  
             run_button = gr.Button("Run Inpainting")
+        with gr.Column(scale=2):  
+            output_image = gr.Image(label="Output Image")
 
     with gr.Row():  
         with gr.Column(scale=2):  
@@ -105,17 +194,18 @@ with gr.Blocks() as demo:
                         )
 
             with gr.Accordion("Specific png mask input (Optional)", open=False):
+                mask_checkbox = gr.Checkbox(value=False, label="Enable png mask assignment")
                 mask_input = gr.Image(type="pil", label="png Mask (Optional)")
         with gr.Column(scale=2):  
             with gr.Tab("FreeCond Settings"):
                 with gr.Row():
                     fc_step = gr.Slider(
-                    minimum=1.0, maximum=100, step=1, value=25, label="tfc (FreeCond Step)"
+                    minimum=1.0, maximum=100, step=1, value=10, label="tfc (FreeCond Step)"
                     )
                 with gr.Row():
                    with gr.Column(scale=1):   
                         alpha_1= gr.Slider(
-                            minimum=-2, maximum=5, step=0.1, value=1, label="alpha_1 (inner mask scale before tfc)")
+                            minimum=-2, maximum=5, step=0.1, value=3, label="alpha_1 (inner mask scale before tfc)")
                    with gr.Column(scale=1):   
                         alpha_2= gr.Slider(
                             minimum=-2, maximum=5, step=0.1, value=1, label="alpha_2 (inner mask scale after tfc)")
@@ -129,16 +219,24 @@ with gr.Blocks() as demo:
                 with gr.Row():
                    with gr.Column(scale=1):   
                         gamma_1= gr.Slider(
-                            minimum=0, maximum=1, step=0.05, value=1, label="gamma_1 (LPF threshold before tfc)")
+                            minimum=0, maximum=1, step=0.05, value=0.5, label="gamma_1 (LPF threshold before tfc)")
                    with gr.Column(scale=1):   
                         gamma_2= gr.Slider(
                             minimum=0, maximum=1, step=0.05, value=1, label="gamma_2 (LPF threshold after tfc)")
+    with gr.Row():
+        # deafult setting
+        preset_selector = gr.Radio(
+            choices=list(predefined_settings.keys()),
+            value="Default",
+            label="Select Parameter Preset",
+        )
+
 
 
 # def process_inpainting(forward, image, mask, prompt, nprompt, seed, hsize, wsize, gs, step, tfc, a1, a2, b1, b2, g1, g2):      
     run_button.click(
         fn=process_inpainting,
-        inputs = [forward_state, image_input, mask_input, prompt, nprompt, seed, hsize, wsize, guidance, step, fc_step,
+        inputs = [mask_checkbox, forward_state, image_input, mask_input, prompt, nprompt, seed, hsize, wsize, guidance, step, fc_step,
                 alpha_1, alpha_2, beta_1, beta_2, gamma_1, gamma_2 ],
         outputs = [output_status, output_image]
     )
@@ -147,14 +245,27 @@ with gr.Blocks() as demo:
         inputs = [pretrained_weight_dropdown],
         outputs = [forward_state, output_status]
     )
+    # return settings["prompt"], settings["nprompt"], settings["seed"], settings["gs"], settings["image"],
+    #  settings["mask"], settings["tfc"], settings["a1"], settings["a2"],
+    #  settings["b1"], settings["b2"], settings["g1"]
+    preset_selector.change(
+        fn=apply_preset,
+        inputs=[preset_selector],
+        outputs=[mask_checkbox, prompt, nprompt, seed, guidance, image_input, mask_input, fc_step, alpha_1, alpha_2, beta_1, beta_2, gamma_1,],
+    )
 
 demo.launch()
 
+
+
+
 # with gr.Blocks() as demo:
 #     forward_state = gr.State(value=None)
-#     with gr.Row():  
+#     with gr.Row(equal_height=True):  
+#         with gr.Column(scale=2):
+#             output_status = gr.Textbox(label="Infomations",value="No weights loaded", interactive=False)
 #         with gr.Column(scale=1):  
-#             pretrained_weight_dropdown = gr.Dropdown(
+#                 pretrained_weight_dropdown = gr.Dropdown(
 #                 label="Select Pretrained Weight",
 #                 choices=["SDXLInpainting",
 #                         "StableDiffusionInpainting",
@@ -164,54 +275,90 @@ demo.launch()
 #                         "BrushNet"],  # Replace with actual weight file paths
 #                 value=None
 #             )
-#             load_button = gr.Button("Load Weights")
-#             weight_status = gr.Textbox(label="Status", value="No weights loaded", interactive=False)
-#         with gr.Column(scale=3):  
-#             pass
+#         with gr.Column(scale=1):
+#             load_button = gr.Button("Load Weights")  
 
 #     with gr.Row():  
-#         with gr.Column(scale=1):  
+#         with gr.Column(scale=2):  
 #             image_input = gr.Image(type="pil", label="Upload Image and Draw Mask", tool="sketch")
-#         with gr.Column(scale=3):  
-#             pass
+#         with gr.Column(scale=2):  
+#             output_image = gr.Image(label="Output Image")
     
 #     with gr.Row():  
-#         with gr.Column(scale=1):  
+#         with gr.Column(scale=2):  
 #             prompt = gr.Textbox(
-#                 label="Prompt", placeholder="Enter your prompt here..."
+#                 label="Prompt", value="A quokka wearing round glasses, cartoon style, chrismas vibe",placeholder="Enter your prompt here..."
 #             )
-#         with gr.Column(scale=3):  
-#             output_image = gr.Image(label="Output Image")
+#         with gr.Column(scale=2):  
+#             run_button = gr.Button("Run Inpainting")
 
 #     with gr.Row():  
-#         with gr.Column(scale=1):
-#             run_button = gr.Button("Run Inpainting")
-#         with gr.Column(scale=3):  
-#             pass
-#     with gr.Row():  
-#         with gr.Column(scale=1):  
-#             with gr.Tab("Settings"):
+#         with gr.Column(scale=2):  
+#             with gr.Tab("Inpainting Settings"):
 #                 seed= gr.Slider(
-#                     minimum=0, maximum=1000, step=1, value=1234, label="Random Seed"
+#                     minimum=0, maximum=1000000, step=1, value=1234, label="Random Seed"
 #                 )
 #                 guidance = gr.Slider(
 #                     minimum=1.0, maximum=100, step=0.5, value=15, label="Guidance Scale"
 #                 )
+#                 step = gr.Slider(
+#                     minimum=1, maximum=100, step=1, value=50, label="Inference Step"
+#                 )
+#                 nprompt = gr.Textbox(
+#                 label="nprompt", placeholder="Enter your negative prompt", value="word, bad quality, bad anatomy, ugly, mutation, blurry, error"
+#                 )
+#                 with gr.Row():
+#                     with gr.Column(scale=1):
+#                         hsize= gr.Slider(
+#                         minimum=256, maximum=1024, step=1, value=512, label="Height"
+#                         )
+#                     with gr.Column(scale=1):
+#                         wsize= gr.Slider(
+#                         minimum=256, maximum=1024, step=1, value=512, label="Width"
+#                         )
+
+#             with gr.Accordion("Specific png mask input (Optional)", open=False):
 #                 mask_input = gr.Image(type="pil", label="png Mask (Optional)")
-#         with gr.Column(scale=3):  
-#             pass
+#         with gr.Column(scale=2):  
+#             with gr.Tab("FreeCond Settings"):
+#                 with gr.Row():
+#                     fc_step = gr.Slider(
+#                     minimum=1.0, maximum=100, step=1, value=25, label="tfc (FreeCond Step)"
+#                     )
+#                 with gr.Row():
+#                    with gr.Column(scale=1):   
+#                         alpha_1= gr.Slider(
+#                             minimum=-2, maximum=5, step=0.1, value=1, label="alpha_1 (inner mask scale before tfc)")
+#                    with gr.Column(scale=1):   
+#                         alpha_2= gr.Slider(
+#                             minimum=-2, maximum=5, step=0.1, value=1, label="alpha_2 (inner mask scale after tfc)")
+#                 with gr.Row():
+#                    with gr.Column(scale=1):   
+#                         beta_1= gr.Slider(
+#                             minimum=-2, maximum=5, step=0.1, value=0, label="beta_1 (outter mask scale before tfc)")
+#                    with gr.Column(scale=1):   
+#                         beta_2= gr.Slider(
+#                             minimum=-2, maximum=5, step=0.1, value=0, label="beta_2 (outter mask scale after tfc)")
+#                 with gr.Row():
+#                    with gr.Column(scale=1):   
+#                         gamma_1= gr.Slider(
+#                             minimum=0, maximum=1, step=0.05, value=1, label="gamma_1 (LPF threshold before tfc)")
+#                    with gr.Column(scale=1):   
+#                         gamma_2= gr.Slider(
+#                             minimum=0, maximum=1, step=0.05, value=1, label="gamma_2 (LPF threshold after tfc)")
 
-#     with gr.Row():  
-#         with gr.Column(scale=1):  
-#             output_status = gr.Textbox(label="Infomations", interactive=False)
-#         with gr.Column(scale=3):  
-#             pass
 
+# # def process_inpainting(forward, image, mask, prompt, nprompt, seed, hsize, wsize, gs, step, tfc, a1, a2, b1, b2, g1, g2):      
 #     run_button.click(
 #         fn=process_inpainting,
-#         inputs=[pretrained_weight_dropdown, image_input, mask_input, prompt,
-#                  seed, seed, seed, seed, seed],
-#         outputs=[output_status, output_image]
+#         inputs = [forward_state, image_input, mask_input, prompt, nprompt, seed, hsize, wsize, guidance, step, fc_step,
+#                 alpha_1, alpha_2, beta_1, beta_2, gamma_1, gamma_2 ],
+#         outputs = [output_status, output_image]
 #     )
-    
+#     load_button.click(
+#         fn=load_pretrained_weights,
+#         inputs = [pretrained_weight_dropdown],
+#         outputs = [forward_state, output_status]
+#     )
+
 # demo.launch()

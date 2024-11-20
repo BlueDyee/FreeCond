@@ -1,5 +1,6 @@
 # FreeCond: A Free Lunch for Input Conditions in Text-Guided Inpainting
 ### FreeCond introduces a more generalized form 💪 of the original inpainting noise prediction function, enabling improvement👍 of existing methods—completely free of cost! 0️⃣
+![paperteaser](./demo_out/paper_teaser.jpg)
 ### Key Features of This Repository:
 * ✅ **Unified Framework**: Supports state-of-the-art (SOTA) text-guided inpainting methods in a single cohesive framework.
 * ✅ **Flexible Interaction**: Offers both interactive tools (Jupyter notebooks, Gradio UI) and Python scripts designed for evaluation purposes.
@@ -35,6 +36,9 @@ This repository is built upon the following open-source projects. We sincerely a
 * PowerPaint: OpenMMLab - [PowerPaint](https://github.com/open-mmlab/PowerPaint)
 * BrushNet: Tencent ARC - [BrushNet](https://github.com/TencentARC/BrushNet)
 ## 🐾1. Run
+![paperteaser](./demo_out/github_teaser_1.png)
+**(The default output of freecond_app.py by using SDXL inpainting)**
+
 With the environment installed, directly run the following script, to interactively utilizing the FreeCond framework
 ```
 # ipynb support
@@ -42,6 +46,7 @@ freecond_demo.ipynb
 ```
 ```
 # gradio app support
+python freecond_app.py
 ```
 ## 🤓2. For Research
 Due to code optimizations, certain random seed-related functionalities may behave differently compared to our development version 😢. As a result, some outputs might slightly differ from the results reported in our research paper.
