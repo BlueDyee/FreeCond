@@ -1,3 +1,4 @@
+print("⏬ freecond_evaluation.py activated, retrieving packages ...")
 import torch
 import cv2
 import json

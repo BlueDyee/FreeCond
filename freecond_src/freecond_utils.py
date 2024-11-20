@@ -65,7 +65,7 @@ def get_pipeline_forward(method="sd", variant="sd15",device="cuda", **kwargs):
         from hdpainter_src.methods import fc_rasg, rasg, sd, sr
         from hdpainter_src.utils import IImage, resize
 
-        print("🔄 Building HD-Painter FreeCond control...")
+        print("🔄 Building HD-Painter FreeCond control ...")
 
         if "hdp_methods" in kwargs:
             hdp_methods=kwargs["hdp_methods"]
