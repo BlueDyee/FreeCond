@@ -1,5 +1,5 @@
 # FreeCond: A Free Lunch for Input Conditions in Text-Guided Inpainting
-### FreeCond introduces a more generalized form 💪 of the original inpainting noise prediction function, enabling improvement👍 of existing methods—completely free of cost! 0️⃣
+### FreeCond introduces a more generalized form💪 of the original inpainting noise prediction function, enabling improvement👍 of existing methods—completely free of cost0️⃣!
 ![paperteaser](./demo_out/paper_teaser.jpg)
 ### Key Features of This Repository:
 * ✅ **Unified Framework**: Supports state-of-the-art (SOTA) text-guided inpainting methods in a single cohesive framework.
@@ -24,7 +24,7 @@ The freecond virtual environment currently supports:
 * ControlNet Inpainting (via diffusers)
 * HD-Painter
 ### Unsupported Features 🙅‍♀️
-The following features are not directly supported in this environment. We have reimplemented their code in this repository, but **you need to manually switch to their respective environments and load the pretrained weights provided by the authors**:
+The following models are **not directly supported** in this environment. We have reimplemented their code in this repository, but **you need to manually switch to their respective environments and load the pretrained weights provided by the authors**:
 
 * PowerPaint
 * BrushNet
@@ -33,8 +33,8 @@ This repository is built upon the following open-source projects. We sincerely a
 
 * Diffusers: [Hugging Face Diffusers](https://github.com/huggingface/diffusers)
 * HD-Painter: [Picsart AI Research - HD-Painter](https://github.com/Picsart-AI-Research/HD-Painter)
-* PowerPaint: OpenMMLab - [PowerPaint](https://github.com/open-mmlab/PowerPaint)
-* BrushNet: Tencent ARC - [BrushNet](https://github.com/TencentARC/BrushNet)
+* PowerPaint: [OpenMMLab - PowerPaint](https://github.com/open-mmlab/PowerPaint)
+* BrushNet: [Tencent ARC - BrushNet](https://github.com/TencentARC/BrushNet)
 ## 🐾1. Run
 ![paperteaser](./demo_out/github_teaser_1.png)
 **(The default output of freecond_app.py by using SDXL inpainting)**
@@ -49,6 +49,9 @@ freecond_demo.ipynb
 python freecond_app.py
 ```
 ## 🤓2. For Research
+![visualization](./demo_out/self_attn_multi.png)
+![visualization2](./demo_out/CI_visualization.png)
+
 Due to code optimizations, certain random seed-related functionalities may behave differently compared to our development version 😢. As a result, some outputs might slightly differ from the results reported in our research paper.
 ```
 # Metrics evaluation
