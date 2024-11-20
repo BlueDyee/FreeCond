@@ -77,7 +77,7 @@ def get_pipeline_forward(method="sd", variant="sd15",device="cuda", **kwargs):
         else:
             hdp_rasg_eta=0.1
         
-        pipe = models.load_inpainting_model(variant, device='cuda:0', cache=True)
+        pipe = models.load_inpainting_model(variant, device='cuda', cache=True)
         runner=fc_rasg
 
         hdp_negative_prompt = "text, bad anatomy, bad proportions, blurry, cropped, deformed, disfigured, duplicate, error, extra limbs, gross proportions, jpeg artifacts, long neck, low quality, lowres, malformed, morbid, mutated, mutilated, out of frame, ugly, worst quality"

@@ -6,4 +6,5 @@
 *.typed
 *.bin
 *.bash
+DEV*
 *.csv
