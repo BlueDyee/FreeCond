@@ -36,7 +36,7 @@ This repository is built upon the following open-source projects. We sincerely a
 * PowerPaint: [OpenMMLab - PowerPaint](https://github.com/open-mmlab/PowerPaint)
 * BrushNet: [Tencent ARC - BrushNet](https://github.com/TencentARC/BrushNet)
 ## 🐾1. Run
-![paperteaser](./demo_out/github_teaser_1.png)
+![paperteaser](./demo_out/github_teaser.jpg)
 **(The default output of freecond_app.py by using SDXL inpainting)**
 
 With the environment installed, directly run the following script, to interactively utilizing the FreeCond framework
