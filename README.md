@@ -48,6 +48,9 @@ freecond_demo.ipynb
 # gradio app support
 python freecond_app.py
 ```
+![gif](./freecond_demo.gif)
+or select from the presets 
+![preset](./demo_out/preset.png)
 ## 🤓2. For Research
 ![visualization](./demo_out/self_attn_multi.png)
 ![visualization2](./demo_out/CI_visualization.png)

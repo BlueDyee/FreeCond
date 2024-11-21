@@ -200,7 +200,7 @@ with gr.Blocks() as demo:
             with gr.Tab("FreeCond Settings"):
                 with gr.Row():
                     fc_step = gr.Slider(
-                    minimum=1.0, maximum=100, step=1, value=10, label="tfc (FreeCond Step)"
+                    minimum=0, maximum=100, step=1, value=0, label="tfc (FreeCond Step)"
                     )
                 with gr.Row():
                    with gr.Column(scale=1):   
