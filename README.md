@@ -49,6 +49,7 @@ freecond_demo.ipynb
 python freecond_app.py
 ```
 ![gif](./freecond_demo.gif)
+(detailed in the [video](./FreeCondDemo_video.mp4))
 or select from the presets 
 ![preset](./demo_out/preset.png)
 ## 🤓2. For Research
