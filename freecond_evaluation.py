@@ -242,7 +242,7 @@ parser.add_argument('--data_csv',
                     default="FCinpaint_bench_info.csv")
 parser.add_argument('--blended', action='store_true')
 parser.add_argument("--no_freecond",action="store_true")
-parser.add_argument("--change_step",
+parser.add_argument("--tfc",
                     type=int,
                     default=50)
 parser.add_argument("--inf_step",
