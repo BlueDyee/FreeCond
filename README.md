@@ -49,6 +49,9 @@ freecond_demo.ipynb
 python freecond_app.py
 ```
 ![gif](./freecond_demo.gif)
+(detailed in the [video](./FreeCondDemo_video.mp4))
+
+
 or select from the presets 
 ![preset](./demo_out/preset.png)
 ## 🤓2. For Research
@@ -81,11 +84,27 @@ This notebook introduces a **Channel Influence Indicator**, which helps identify
 - This selective amplification enhances the model's ability to apply prompt instructions specifically to the masked region.
 
 ### 📏2-2. Metrics evaluation
-As mentioned eralier that this repository merge the existing SOTA text-guidede inpainting methods, we utilize this repository to evaluate these methods for different formulation of FreeCond control, as shown in our research paper, especially the appendix part.
+As mentioned earlier, this repository integrates existing state-of-the-art (SOTA) text-guided inpainting methods. We use this repository to evaluate these methods under various formulations of **FreeCond Control**, as detailed in our research paper, particularly in the appendix section.
 
-These evaluation metrics is based on [BrushBench](https://github.com/TencentARC/BrushNet), but incorporate with a novel IoU score, which automatically calculate the mask-fitting degree of generated object.
+Our evaluation metrics are adapted from [BrushBench](https://github.com/TencentARC/BrushNet) and enhanced with a novel **IoU score**. This score automatically calculates the mask-fitting degree of the generated object, providing a more comprehensive assessment of inpainting performance.
 
-Therefor the including metrics 
+The included metrics are categorized as follows:
+
+#### 1. **Image Quality**
+- **IR (Image Reward)**  
+- **HPS (Human Perceptive Score)**  
+- **AS (Aesthetic Score)**  
+
+#### 2. **Background Preservation**
+- **LPIPS (Learned Perceptual Image Patch Similarity)**  
+- **MSE (Mean Squared Error)**  
+- **PSNR (Peak Signal-to-Noise Ratio)**  
+
+#### 3. **Instruction Following**
+- **CLIP (Contrastive Language–Image Pretraining)**  
+- **IoU Score (Intersection over Union by SAM)**  
+
+These metrics collectively evaluate the performance of the inpainting methods across key aspects, ensuring a thorough comparison and analysis.
 ```
 # 📏Metrics evaluation
 freecond_evaluation.py \
