@@ -50,10 +50,20 @@ freecond_demo.ipynb
 python freecond_app.py
 ```
 ![gif](./freecond_demo.gif)
+
 (detailed in the [video](./FreeCondDemo_video.mp4))
 
 
-or select from the presets 
+<div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+  <img src="./demo_data/corgi_input.gif" alt="GIF 1" style="flex: 1; margin: 5px; max-width: 24%;"/>
+  <img src="./demo_data/corgi_fg.gif" alt="GIF 2" style="flex: 1; margin: 5px; max-width: 24%;"/>
+  <img src="./demo_data/corgi_bg.gif" alt="GIF 3" style="flex: 1; margin: 5px; max-width: 24%;"/>
+  <img src="./demo_data/corgi_fq.gif" alt="GIF 4" style="flex: 1; margin: 5px; max-width: 24%;"/>
+</div>
+
+or select from the presets
+
+
 ![preset](./demo_out/preset.png)
 ## 🤓2. For Research
 ### 👀2-1. Visualization
