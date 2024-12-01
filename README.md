@@ -51,13 +51,16 @@ python freecond_app.py
 ```
 ![gif](./freecond_demo.gif)
 
-(detailed in the [video](./FreeCondDemo_video.mp4))
+The above GIF provides a quick illustration of the FreeCond pipeline. A more detailed introduction can be found in the [video](./FreeCondDemo_video.mp4)
 
 
 | ![GIF 1](./demo_data/corgi_input_256.gif) | ![GIF 2](./demo_data/corgi_fg_256.gif) | ![GIF 3](./demo_data/corgi_bg_256.gif) | ![GIF 4](./demo_data/corgi_fq_256.gif) |
 |---------------------------------------|---------------------------------------|---------------------------------------|---------------------------------------|
 
-or select from the presets
+An illustration of how a more generalized form of inpainting conditions (FreeCond) influences the generation output
+
+
+or select from the following presets given in the freecond_app
 
 
 ![preset](./demo_out/preset.png)
