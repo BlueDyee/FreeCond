@@ -1,4 +1,5 @@
 # FreeCond: Free Lunch in the Input Conditions of Text-Guided Inpainting
+[![arXiv](https://img.shields.io/badge/arXiv-2412.00427-red)](https://arxiv.org/abs/2412.00427)
 ![logo](./demo_data/FreeCond_logo.png)
 ### FreeCond introduces a more generalized form💪 of the original inpainting noise prediction function, enabling improvement👍 of existing methods—completely free of cost0️⃣!
 #### (Our research paper can be download from [here](./FreeCond%20Free%20Lunch%20in%20the%20Input%20Conditions%20of%20Text-Guided%20Inpainting.pdf))
